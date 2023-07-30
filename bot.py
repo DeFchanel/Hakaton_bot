@@ -4,16 +4,11 @@ from telebot import types
 from dotenv import load_dotenv
 import random
 import json
-from pprint import pprint
 
 load_dotenv()
-token = os.getenv('BOT_TOKEN')
+token = os.getenv('TG_BOT_TOKEN')
 bot = telebot.TeleBot(token)
-incorrect_answers = {
-    'question': [],
-    'your_answer': [],
-    'correct_answer': []
-}
+
 with open("data.json", "rb") as read_file:
     questions = json.load(read_file)
 
@@ -23,12 +18,11 @@ def randomize_questions(num_of_questions):
     return test_questions
 
 
-def main_test(test_questions, num, points, chat_id):
+def main_test(test_questions, num, points, chat_id, incorrect_answers):
     if num == len(test_questions):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         menu_button = types.KeyboardButton('Меню выбора режима')
         markup.add(menu_button)
-        pprint(incorrect_answers)
         if incorrect_answers['question']:
             bot.send_message(chat_id, 'Неверные вопросы:')
             for i in range(len(incorrect_answers['question'])):
@@ -45,7 +39,7 @@ def main_test(test_questions, num, points, chat_id):
             markup.row()
         markup.add(types.KeyboardButton('Выход'))
         msg = bot.send_message(chat_id, question, reply_markup=markup)
-        bot.register_next_step_handler(msg, check_answer, question, num, points, test_questions)
+        bot.register_next_step_handler(msg, check_answer, question, num, points, test_questions, incorrect_answers)
 
 
 @bot.message_handler(func=lambda message: message.text in ['/start', 'Меню выбора режима', 'Выход'])
@@ -57,22 +51,27 @@ def send_welcome(message):
     markup.add(button1, button2, button3)
     bot.send_message(message.chat.id, 'Добро пожаловать в тест по Python! Выберите режим.', reply_markup=markup)
 
-    
+
 @bot.message_handler(content_types=['text'])
 def select_mode(message):
+    incorrect_answers = {
+        'question': [],
+        'your_answer': [],
+        'correct_answer': []
+    }
     chat_id = message.chat.id
     if message.text == '5 вопросов':
         test_questions = randomize_questions(5)
-        main_test(test_questions, 0, 0, chat_id)
+        main_test(test_questions, 0, 0, chat_id, incorrect_answers)
     elif message.text == '15 вопросов':
         test_questions = randomize_questions(15)
-        main_test(test_questions, 0, 0, chat_id)
+        main_test(test_questions, 0, 0, chat_id, incorrect_answers)
     elif message.text == '30 вопросов':
         test_questions = randomize_questions(30)
-        main_test(test_questions, 0, 0, chat_id)
+        main_test(test_questions, 0, 0, chat_id, incorrect_answers)
     
 
-def check_answer(message, question, num, points, test_questions):
+def check_answer(message, question, num, points, test_questions, incorrect_answers):
     chat_id = message.chat.id
     answer = message.text
     if answer == 'Выход':
@@ -82,7 +81,7 @@ def check_answer(message, question, num, points, test_questions):
         if questions[question][answer]:
             points += 1
             num += 1
-            main_test(test_questions, num, points, chat_id)
+            main_test(test_questions, num, points, chat_id, incorrect_answers)
         else:
             incorrect_answers['question'].append(question)
             incorrect_answers['your_answer'].append(answer)
@@ -91,10 +90,10 @@ def check_answer(message, question, num, points, test_questions):
                     correct_answer = option
             incorrect_answers['correct_answer'].append(correct_answer)
             num += 1
-            main_test(test_questions, num, points, chat_id)
+            main_test(test_questions, num, points, chat_id, incorrect_answers)
     except KeyError:
         bot.send_message(message.chat.id, 'Вы ввели недопустимый ответ. Попробуйте еще раз')
-        main_test(test_questions, num, points, chat_id)
+        main_test(test_questions, num, points, chat_id, incorrect_answers)
     
 
 bot.infinity_polling()
