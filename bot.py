@@ -5,12 +5,12 @@ from dotenv import load_dotenv
 import random
 import json
 
-load_dotenv()
-token = os.getenv('TG_BOT_TOKEN')
-bot = telebot.TeleBot(token)
-
-with open("data.json", "rb") as read_file:
-    questions = json.load(read_file)
+if __name__ == '__main__':
+    load_dotenv()
+    token = os.getenv('TG_BOT_TOKEN')
+    bot = telebot.TeleBot(token)
+    with open("data.json", "rb") as read_file:
+        questions = json.load(read_file)
 
 
 def randomize_questions(num_of_questions):
